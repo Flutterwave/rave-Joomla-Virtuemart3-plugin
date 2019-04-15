@@ -142,14 +142,15 @@ class plgVmPaymentRave extends vmPSPlugin
     {
         $rave_settings = $this->getPluginMethod($payment_method_id);
 
+        $baseUrl = 'https://api.ravepay.co';
+        $apiLink = 'https://api.ravepay.co/';
+
         if ($rave_settings->test_mode) {
-            $baseUrl = 'https://ravesandboxapi.flutterwave.com';
-            $apiLink = 'https://ravesandboxapi.flutterwave.com/';
+
             $secret_key = $rave_settings->test_secret_key;
             $public_key = $rave_settings->test_public_key;
         } else {
-            $baseUrl = 'https://api.ravepay.co';
-            $apiLink = 'https://api.ravepay.co/';
+
             $secret_key = $rave_settings->live_secret_key;
             $public_key = $rave_settings->live_public_key;
         }
@@ -166,7 +167,7 @@ class plgVmPaymentRave extends vmPSPlugin
             'metavalue' => $rave_settings->metavalue,
             'country' => $rave_settings->country,
             'payment_method' => $rave_settings->payment_method
-            
+
         );
     }
 
@@ -186,9 +187,9 @@ class plgVmPaymentRave extends vmPSPlugin
             'txref' => $_GET['txref'],
             'SECKEY' => $rave_settings['secret_key'],
             'last_attempt' => '1'
-	        // 'only_successful' => '1'
+            // 'only_successful' => '1'
         );
-	    // make request to endpoint.
+        // make request to endpoint.
         $data_string = json_encode($data);
         $ch = curl_init();
         curl_setopt($ch, CURLOPT_URL, $apiLink . 'flwv3-pug/getpaidx/api/v2/verify');
@@ -228,11 +229,10 @@ class plgVmPaymentRave extends vmPSPlugin
 
 
         return $transactionStatus;
-
     }
 
     function plgVmConfirmedOrder($cart, $order)
-    {   
+    {
         if (!($method = $this->getVmPluginMethod($order['details']['BT']->virtuemart_paymentmethod_id))) {
             return null;
         }
@@ -258,7 +258,7 @@ class plgVmPaymentRave extends vmPSPlugin
         $query->select('currency_code_3');
         $query->from($db->quoteName('#__virtuemart_currencies'));
         $query->where($db->quoteName('virtuemart_currency_id')
-                . ' = ' . $db->quote($method->payment_currency));
+            . ' = ' . $db->quote($method->payment_currency));
         $db->setQuery($query);
         $currency_code = $db->loadResult();
 
@@ -282,7 +282,7 @@ class plgVmPaymentRave extends vmPSPlugin
         $redirect_url = JURI::root() . 'index.php?option=com_virtuemart&view=pluginresponse&task=pluginresponsereceived&on=' . $order['details']['BT']->order_number . '&pm=' . $order['details']['BT']->virtuemart_paymentmethod_id . '&Itemid=' . vRequest::getInt('Itemid') . '&lang=' . vRequest::getCmd('lang', '');
 
         // Rave Settings
-        $payment_method_id = $dbValues['virtuemart_paymentmethod_id'];//vRequest::getInt('virtuemart_paymentmethod_id');
+        $payment_method_id = $dbValues['virtuemart_paymentmethod_id']; //vRequest::getInt('virtuemart_paymentmethod_id');
         $rave_settings = $this->getRaveSettings($payment_method_id);
 
         // Get the country
@@ -296,12 +296,15 @@ class plgVmPaymentRave extends vmPSPlugin
             case 'ZAR':
                 $country = 'ZA';
                 break;
-            
+            case 'TZS':
+                $country = 'TZ';
+                break;
+
             default:
                 $country = 'NG';
                 break;
         }
-        
+
         $postfields = array();
         $postfields['PBFPubKey'] = $rave_settings['public_key'];
         $postfields['customer_email'] = $order_info->email;
@@ -329,7 +332,7 @@ class plgVmPaymentRave extends vmPSPlugin
         array_push($meta, array('metaname' => $rave_settings['metaname'], 'metavalue' => $rave_settings['metavalue']));
         $transactionData = array_merge($postfields, array('integrity_hash' => $hashedValue));
         $json = json_encode($transactionData);
-        
+
         // Rave Gateway HTML code
         $html = "
         <script type='text/javascript' src='" . $rave_settings['baseUrl'] . "/flwv3-pug/getpaidx/api/flwpbf-inline.js'></script>
@@ -523,5 +526,4 @@ class plgVmPaymentRave extends vmPSPlugin
     {
         return $this->setOnTablePluginParams($name, $id, $table);
     }
-
 }
